@@ -1,17 +1,3 @@
-#################################################################################################################
-################################# Orbiter Sensor CONFIGURATION ##################################################
-#################################################################################################################
-
-#config file version v2.2.04
-#release date: 23.09.2023
-
-# PAUSE and RESUME macros are defined at the end of this config file.
-# If you prefer using your own p[lease delete them, otherwise define parking position below.
-
-#################################################################################################################
-################################# CHANGE HERE MACRO CONFIGURABLES################################################
-#################################################################################################################
-
 [gcode_macro _SENSOR_VARIABLES]         # change here macro configurables, enable disable functions!*************************
 variable_filament_load_temp     :240    # temperature to heat up hotend for filament loading, default is 235
 variable_filament_unload_temp   :230    # temperature to heat up hotend for filament un-loading, default is 185
@@ -62,11 +48,11 @@ enable_force_move: True
 gcode:
   {% set sensor = printer['gcode_macro _SENSOR_VARIABLES'] %}  
   {% if (printer.print_stats.state == "printing") %}      
-  {% if(sensor.disable_runnout|lower == 'false') %}
-  filament_change_state1
-  {% else %}
+    {% if(sensor.disable_runnout|lower == 'false') %}
+      filament_change_state1
+    {% else %}
     M118 Filament runnout is disabled in the sensor config file!   
-  {% endif %}     
+    {% endif %}     
   {% endif %} 
   UPDATE_DELAYED_GCODE ID=clear_loadbusy DURATION=2
   UPDATE_DELAYED_GCODE ID=clear_unloadbusy DURATION=2    
@@ -78,10 +64,10 @@ variable_temp_target: 0
 gcode:
   {% set sensor = printer['gcode_macro _SENSOR_VARIABLES'] %}  
   {% if changebusy == 0 %}
-  PAUSE # call printer pause macro      
-  SET_GCODE_VARIABLE MACRO=filament_change_state1 VARIABLE=changebusy VALUE=1       
-  M118 Filament runnout!       
-  filament_change_state2     # comment this line if you do not want to automatically unload filament in case there is a runnout detected.
+    PAUSE # call printer pause macro      
+    SET_GCODE_VARIABLE MACRO=filament_change_state1 VARIABLE=changebusy VALUE=1       
+    M118 Filament runnout!       
+    filament_change_state2     # comment this line if you do not want to automatically unload filament in case there is a runnout detected.
   {% else %}
   {% endif %}
 
@@ -90,7 +76,7 @@ gcode:
   {% set sensor = printer['gcode_macro _SENSOR_VARIABLES'] %}  
   SET_GCODE_VARIABLE MACRO=filament_load VARIABLE=loadbusy VALUE=1      
   {% if (sensor.enable_beep|lower == 'true') %} 
-    #M300 # beep sound
+    M300 # beep sound
   {% endif %}
   M118 Unloading filament...   
   M83
@@ -135,8 +121,8 @@ gcode:
 
 [gcode_macro filament_load]
 variable_loadbusy: 0
-variable_USER_TEMP: 200
-variable_LOAD_TEMP: 230
+variable_USER_TEMP: 0
+variable_LOAD_TEMP: 0
 gcode:    
     {% set sensor = printer['gcode_macro _SENSOR_VARIABLES'] %}
     {% if loadbusy == 0 %} # requires [virtual_sdcard] 
@@ -169,7 +155,7 @@ gcode:
     {% else %}
       M118 Filament already loaded!    
     {% endif %}  
-#############################################END filament auto load macro section END***********************************************************
+#############################################END filament suto load macro section END***********************************************************
 #############################################filament auto unload macro section*****************************************************************
 [gcode_macro filament_unload_init]
 gcode:
@@ -193,12 +179,12 @@ gcode:
       SET_GCODE_VARIABLE MACRO=filament_unload VARIABLE=unloadbusy VALUE=1
       SET_GCODE_VARIABLE MACRO=filament_load VARIABLE=loadbusy VALUE=1
       {% if (sensor.enable_beep|lower == 'true') %} 
-        #M300 # beep sound
+        M300 # beep sound
       {% endif %}
       M118 Filament unloading!    
       M83
       G92 E0 
-      #{% if (printer.extruder.can_extrude|lower != 'true') or (printer.extruder.target == 0)%} # checing for minimum extrusion temperature
+      # {% if (printer.extruder.can_extrude|lower != 'true') or (printer.extruder.target == 0)%} # checing for minimum extrusion temperature
       {% if (printer.extruder.can_extrude|lower != 'true')%} # checing for minimum extrusion temperature
         # check if temperature is over the minimum extrusion temp. min_extrude_temp must be defined in the extruder config (to about 185)
         M118 Hotend heating!          
@@ -217,7 +203,7 @@ gcode:
       M104 S0 T0 
       M400 # wait to complete unload
       M118 Filament unload complete!      
-      SET_GCODE_VARIABLE MACRO=filament_load VARIABLE=loadbusy VALUE=0     
+      #SET_GCODE_VARIABLE MACRO=filament_load VARIABLE=loadbusy VALUE=0     
     {% else %}      
       M118 Nothing to unload!
     {% endif %}
@@ -243,28 +229,3 @@ gcode:
 gcode:
   SET_GCODE_VARIABLE MACRO=filament_load VARIABLE=loadbusy VALUE=0
   #M118 Clear Load busy!  
-
-
-# config file version v2.2.04 change note
-    # Commented ou the set Orbiled commands.
-
-
-# config file version v2.2.03 change note
-# 1 - defined user variables at the begining of the file for easier macro parameters adjustment
-# 2 - defined disable configuration of features
-# 3 - included PAUSE and RESUME macros with restoring bed and hotend temperature featres.
-
-# config file version v2.2.02 change note
-# 1 - filament loading will not set hotend temperature to zero in case the hotend was already set hot before the loading / filament change procedure
-# 2 - Filament load / unload waits for hotend to reach temp not to reach stabilized temperature - faster filament loading and unloading.
-# 3 - Removed messages to screen, only console echo is present
-# 4 - Panel beep replaced by M300 / comment it out if not available on your printer
-# 5 - unload procedure changed for better filament tip forming.
-# 6 - known issue - if printer paused due to runout detection and new filament is not loaded whiting Klipper heaters timeout period (default is 10min) the heaters will be switched OFF. 
-      # If user loads new filament autoload with work with its default loading temperature of 230 deg C but the heaters temperature will not be restored afterwards user needs to set back heaters temperature.
-      # on my printer this timeout also causes loosing of extruder position and printing can be resumed only after homing first and setting back temperatures manually.
-
-
-
-
-
